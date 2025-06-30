@@ -1,55 +1,48 @@
-function formatMonthDay(inputString: string): string {
-  // 1. Разбиваем строку на пары "месяц-день".
-  const pairs: string[] = inputString.split(',');
+function formatDate(inputString: string): string {
+    // 1. Разделяем входную строку на отдельные даты.
+    const dates: string[] = inputString.split(',');
 
-  // 2. Функция для форматирования одной пары "месяц-день".
-  const formatPair = (pair: string): string => {
-    const parts: string[] = pair.trim().split('-');
-    if (parts.length !== 2) {
-      return `Некорректный формат пары: ${pair}`;
-    }
-
-    const month: number = parseInt(parts[0].trim());
-    const day: number = parseInt(parts[1].trim());
-
-    if (isNaN(month) || isNaN(day)) {
-      return `Некорректные числовые значения в паре: ${pair}`;
-    }
-
-    if (month < 1 || month > 12) {
-      return `Некорректный номер месяца: ${month}`;
-    }
-
-    if (day < 1 || day > 31) {
-      return `Некорректный номер дня: ${day}`;
-    }
-
-    const daySuffix = getDaySuffix(day);
-
-    return `${day}-ый день ${month}-ого месяца`;
-  };
-
-  // Функция для получения суффикса для дней (1-ый, 2-ой, 3-ий, и т.д.)
-  function getDaySuffix(day: number): string {
-    if (day >= 11 && day <= 13) {
-      return '-ый';
-    }
-    switch (day % 10) {
-      case 1:
-        return '-ый';
-      case 2:
-        return '-ой';
-      case 3:
-        return '-ий';
-      default:
-        return '-ый';
-    }
-  }
+    // 2. Словарь соответствия номеров месяцев и их названий.
+    const monthNames: { [key: string]: string } = {
+        '01': 'января',
+        '02': 'февраля',
+        '03': 'марта',
+        '04': 'апреля',
+        '05': 'мая',
+        '06': 'июня',
+        '07': 'июля',
+        '08': 'августа',
+        '09': 'сентября',
+        '10': 'октября',
+        '11': 'ноября',
+        '12': 'декабря',
+    };
 
 
-  // 3. Форматируем каждую пару и собираем результаты в массив.
-  const formattedPairs: string[] = pairs.map(formatPair);
+    // 3. Функция для форматирования одной даты (день-месяц).
+    const formatDatePair = (datePair: string): string => {
+        const [month, day] = datePair.trim().split('-').map(s => s.trim());
 
-  // 4. Соединяем отформатированные пары в строку, разделенную запятыми.
-  return formattedPairs.join(', ');
+        if (!month || !day) {
+            return `Неверный формат даты: ${datePair}`;
+        }
+
+        if (!monthNames[month]) {
+            return `Неверный номер месяца: ${month}`;
+        }
+
+        const dayNumber: number = parseInt(day, 10);
+        if (isNaN(dayNumber) || dayNumber < 1 || dayNumber > 31) {
+            return `Неверный номер дня: ${day}`;
+        }
+
+
+        return `${day} ${monthNames[month]}`;
+    };
+
+    // 4. Форматируем каждую дату и собираем результаты.
+    const formattedDates: string[] = dates.map(formatDatePair);
+
+    // 5. Объединяем отформатированные даты в строку.
+    return formattedDates.join(', ');
 }
