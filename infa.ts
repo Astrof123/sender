@@ -1,38 +1,55 @@
-function numbersToDaysOfWeek(numbersString: string): string {
-  // 1. Разбиваем строку на массив чисел и удаляем пробелы.
-  const numbersArray: string[] = numbersString.split(',').map(num => num.trim());
+function formatMonthDay(inputString: string): string {
+  // 1. Разбиваем строку на пары "месяц-день".
+  const pairs: string[] = inputString.split(',');
 
-  // 2. Определяем соответствие между числами и днями недели.
-  const dayOfWeekMap: { [key: string]: string } = {
-    '0': 'Понедельник',
-    '1': 'Вторник',
-    '2': 'Среда',
-    '3': 'Четверг',
-    '4': 'Пятница',
-    '5': 'Суббота',
-    '6': 'Воскресенье',
+  // 2. Функция для форматирования одной пары "месяц-день".
+  const formatPair = (pair: string): string => {
+    const parts: string[] = pair.trim().split('-');
+    if (parts.length !== 2) {
+      return `Некорректный формат пары: ${pair}`;
+    }
+
+    const month: number = parseInt(parts[0].trim());
+    const day: number = parseInt(parts[1].trim());
+
+    if (isNaN(month) || isNaN(day)) {
+      return `Некорректные числовые значения в паре: ${pair}`;
+    }
+
+    if (month < 1 || month > 12) {
+      return `Некорректный номер месяца: ${month}`;
+    }
+
+    if (day < 1 || day > 31) {
+      return `Некорректный номер дня: ${day}`;
+    }
+
+    const daySuffix = getDaySuffix(day);
+
+    return `${day}-ый день ${month}-ого месяца`;
   };
 
-  // 3. Преобразуем числа в дни недели и собираем их в новый массив.
-  const daysOfWeekArray: string[] = numbersArray.map(number => {
-    if (dayOfWeekMap.hasOwnProperty(number)) {
-      return dayOfWeekMap[number];
-    } else {
-      return `Некорректное число (${number})`; // Или другое сообщение об ошибке
+  // Функция для получения суффикса для дней (1-ый, 2-ой, 3-ий, и т.д.)
+  function getDaySuffix(day: number): string {
+    if (day >= 11 && day <= 13) {
+      return '-ый';
     }
-  });
+    switch (day % 10) {
+      case 1:
+        return '-ый';
+      case 2:
+        return '-ой';
+      case 3:
+        return '-ий';
+      default:
+        return '-ый';
+    }
+  }
 
-  // 4. Соединяем дни недели в строку, разделенную запятыми.
-  const daysOfWeekString: string = daysOfWeekArray.join(', ');
 
-  return daysOfWeekString;
+  // 3. Форматируем каждую пару и собираем результаты в массив.
+  const formattedPairs: string[] = pairs.map(formatPair);
+
+  // 4. Соединяем отформатированные пары в строку, разделенную запятыми.
+  return formattedPairs.join(', ');
 }
-
-// Пример использования:
-const inputString: string = "0, 2, 4, 6";
-const outputString: string = numbersToDaysOfWeek(inputString);
-console.log(outputString); // Вывод: Понедельник, Среда, Пятница, Воскресенье
-
-const invalidInput: string = "0, 2, 7, 4";
-const invalidOutput: string = numbersToDaysOfWeek(invalidInput);
-console.log(invalidOutput); // Вывод: Понедельник, Среда, Некорректное число (7), Пятница
