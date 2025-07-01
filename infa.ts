@@ -1,124 +1,70 @@
-import React, {
-  useEffect,
-  useRef,
-  useCallback,
-  useState,
-} from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchNotifications } from "./actions"; // Замените на ваш action
-import { useToast } from "./toast"; // Замените на ваш toast
-import NotificationItem from "./NotificationItem"; // Замените на ваш компонент
-import s from "./NotificationList.module.scss";
-import { clsx } from "clsx";
+import React, { useState, useEffect, useRef } from 'react';
 
-interface NotificationListProps {
-  searchQuery: string | null;
-}
-
-const NotificationList: React.FC<NotificationListProps> = ({
-  searchQuery,
-}) => {
-  const [scrollPosition, setScrollPosition] = useState(0); // Состояние для хранения позиции скролла
-  const [loadingMore, setLoadingMore] = useState(false); // Состояние для предотвращения одновременных запросов
-  const observer = useRef<IntersectionObserver | null>(null);
-  const { cursor, hasMore, notifications, loading, error } = useSelector(
-    (state: any) => state.notification // Замените any на правильный тип состояния
-  );
-  const dispatch = useDispatch();
-  const notify = useToast();
-  const [isFirstLoading, setIsFirstLoading] = useState(true); //Отслеживание первоначальной загрузки
+const MyComponent: React.FC = () => {
+  const [scrollPosition, setScrollPosition] = useState(0);
+  const [data, setData] = useState<any[]>([]); // Замените any[] на ваш тип данных
+  const [isLoading, setIsLoading] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null); // Для курсорной пагинации
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    //Сохраняем позицию скролла перед перерендером
-    const handleBeforeUnload = () => {
+    const handleScroll = () => {
       setScrollPosition(window.pageYOffset);
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener('scroll', handleScroll);
+
+    // Загрузка первой порции данных при монтировании
+    loadMoreData();
 
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener('scroll', handleScroll); // Обязательно убирайте listener
     };
   }, []);
 
-  useEffect(() => {
-    // Восстанавливаем позицию скролла после первой загрузки
-    if (!isFirstLoading && notifications && notifications.length > 0) {
-      window.scrollTo(0, scrollPosition);
+  // Функция загрузки данных
+  const loadMoreData = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+    try {
+      // Замените это на ваш запрос к API
+      const response = await fetch(`/api/data?cursor=${cursor || ''}`);
+      const newData = await response.json();
+
+      setData(prevData => [...prevData, ...newData.items]);
+      setCursor(newData.nextCursor); // Обновляем курсор для следующей страницы
+    } catch (error) {
+      console.error('Ошибка при загрузке данных:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [notifications, scrollPosition, isFirstLoading]);
+  };
 
+  // Бесконечный скролл
   useEffect(() => {
-    dispatch(fetchNotifications({ cursor: null, query: searchQuery }));
-    setIsFirstLoading(false);
-  }, [dispatch, searchQuery]);
-
-  const lastItemElementRef = useCallback(
-    (node: HTMLTableRowElement | null) => {
-      if (loadingMore) return; // Предотвращаем запуск нового запроса, если предыдущий еще в процессе
-      if (observer.current) observer.current.disconnect();
-
-      observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          setLoadingMore(true);
-          dispatch(fetchNotifications({ cursor: cursor, query: searchQuery }))
-            .then(() => setLoadingMore(false))
-                        .catch((err) => {
-              setLoadingMore(false);
-              notify(err, "error");
-            });
+    const handleScroll = () => {
+      if (containerRef.current && window.innerHeight + document.documentElement.scrollTop + 200 > containerRef.current.offsetHeight) {
+        if (!isLoading && cursor) {
+          loadMoreData();
         }
-      });
-
-      if (node) {
-        observer.current.observe(node);
       }
-    },
-    [loadingMore, hasMore, cursor, searchQuery, dispatch, notify]
-  );
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isLoading, cursor]);
 
   return (
-    <div className={clsx(s["notifications-wrapper"])}>
-      <div className={clsx(s.notifications)}>
-        {loading && isFirstLoading ? (
-          <p className={clsx("loading-text")}>Загрузка уведомлений...</p>
-        ) : error ? (
-          <p className={clsx("error-text")}>{error}</p>
-        ) : notifications.length === 0 ? (
-          <p className={clsx("empty-list-text")}>Уведомлений пока не добавлено.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                {/* Ваши заголовки таблицы */}
-                <th>ID</th>
-                <th>Дата</th>
-                <th>Сообщение</th>
-              </tr>
-            </thead>
-            <tbody>
-              {notifications.map((item, index) => {
-                const isLastItem = index === notifications.length - 1;
-
-                return (
-                  <NotificationItem
-                    key={item.id}
-                    notification={item}
-                    ref={isLastItem ? lastItemElementRef : null}
-                  />
-                );
-              })}
-              {loadingMore && (
-                <tr>
-                  <td colSpan={3}>Загрузка...</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
+    <div ref={containerRef}>
+      {data.map((item, index) => (
+        <div key={index}>{item.name}</div> // Замените item.name на нужные свойства
+      ))}
+      {isLoading && <div>Загрузка...</div>}
     </div>
   );
 };
 
-export default NotificationList;
+export default MyComponent;
